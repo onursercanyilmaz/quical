@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { AppState, EventDetails } from './types';
-import { extractEventsFromImage } from './services/openRouterService';
+import { extractEventsFromImage, extractEventsFromText } from './services/openRouterService';
 import Header from './components/Header';
 import UploadZone from './components/UploadZone';
+import TextInputZone from './components/TextInputZone';
 import EventEditor from './components/EventEditor';
 import ResultCard from './components/ResultCard';
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronLeft, ChevronRight, Image, Type } from 'lucide-react';
+
+type InputMode = 'screenshot' | 'text';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
+  const [inputMode, setInputMode] = useState<InputMode>('screenshot');
   const [events, setEvents] = useState<EventDetails[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -26,6 +30,22 @@ const App: React.FC = () => {
     } catch (err) {
       console.error(err);
       setErrorMsg("We couldn't read that image. Please try a clearer screenshot.");
+      setAppState(AppState.ERROR);
+    }
+  };
+
+  const handleTextSubmit = async (text: string) => {
+    setAppState(AppState.ANALYZING);
+    setErrorMsg(null);
+    setUploadedImage(null);
+    try {
+      const extractedEvents = await extractEventsFromText(text);
+      setEvents(extractedEvents);
+      setCurrentEventIndex(0);
+      setAppState(AppState.REVIEW);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("We couldn't parse that text. Please try again with clearer event details.");
       setAppState(AppState.ERROR);
     }
   };
@@ -71,13 +91,13 @@ const App: React.FC = () => {
       <main className="flex-1 w-full max-w-3xl mx-auto p-4 md:p-8 flex flex-col">
         {/* Intro Text */}
         {appState === AppState.IDLE && (
-          <div className="text-center mb-12 mt-10">
+          <div className="text-center mb-8 mt-10">
             <h2 className="text-4xl md:text-5xl font-bold text-black mb-6 tracking-tighter">
-              Screenshots to<br />
+              Anything to<br />
               <span className="text-gray-400">Calendar Events</span>
             </h2>
             <p className="text-gray-500 text-lg max-w-md mx-auto leading-relaxed font-light">
-              Upload an image. We extract the details. You get a calendar link. Simple.
+              Upload a screenshot or paste text. We extract the details. You get a calendar file.
             </p>
           </div>
         )}
@@ -87,7 +107,37 @@ const App: React.FC = () => {
 
           {appState === AppState.IDLE && (
             <div className="max-w-xl mx-auto w-full">
-              <UploadZone onImageSelected={handleImageSelected} />
+              {/* Input Mode Tabs */}
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <button
+                  onClick={() => setInputMode('screenshot')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${inputMode === 'screenshot'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  <Image className="w-4 h-4" />
+                  Screenshot
+                </button>
+                <button
+                  onClick={() => setInputMode('text')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${inputMode === 'text'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                  <Type className="w-4 h-4" />
+                  Copy & Paste
+                </button>
+              </div>
+
+              {/* Input Zone */}
+              {inputMode === 'screenshot' ? (
+                <UploadZone onImageSelected={handleImageSelected} />
+              ) : (
+                <TextInputZone onTextSubmit={handleTextSubmit} />
+              )}
+
               {/* Demo hints */}
               <div className="mt-12 flex justify-center gap-8 text-center text-gray-400">
                 <div className="flex flex-col items-center gap-2">

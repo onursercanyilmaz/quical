@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Upload, ImageIcon } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Upload, ImageIcon, ClipboardPaste } from 'lucide-react';
 
 interface UploadZoneProps {
   onImageSelected: (base64: string) => void;
@@ -21,7 +21,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImageSelected }) => {
 
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -45,11 +45,54 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImageSelected }) => {
     }
   };
 
+  // Handle paste from clipboard
+  const handlePaste = (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          processFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  // Handle paste button click
+  const handlePasteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering file input click
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        const imageType = item.types.find(type => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const file = new File([blob], 'pasted-image.png', { type: imageType });
+          processFile(file);
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Add global paste listener
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, []);
+
   return (
-    <div 
+    <div
       className={`relative border border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer
-        ${isDragging 
-          ? 'border-black bg-gray-50' 
+        ${isDragging
+          ? 'border-black bg-gray-50'
           : 'border-gray-300 hover:border-black hover:bg-gray-50'
         }
       `}
@@ -58,25 +101,34 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImageSelected }) => {
       onDrop={handleDrop}
       onClick={() => fileInputRef.current?.click()}
     >
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileInput} 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileInput}
+        className="hidden"
         accept="image/*"
       />
-      
+
       <div className="flex flex-col items-center justify-center space-y-5">
         <div className={`p-4 rounded-full transition-colors duration-200 ${isDragging ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>
           <Upload className="w-6 h-6" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Upload Screenshot</h3>
-          <p className="text-sm text-gray-500 mt-2">Drag & drop or click to browse</p>
+          <p className="text-sm text-gray-500 mt-2">Drag & drop, click to browse, or <span className="font-medium">Ctrl+V</span> to paste</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <ImageIcon className="w-3 h-3" />
-          <span>PNG, JPG, WebP</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <ImageIcon className="w-3 h-3" />
+            <span>PNG, JPG, WebP</span>
+          </div>
+          <button
+            onClick={handlePasteClick}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-black transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200"
+          >
+            <ClipboardPaste className="w-3 h-3" />
+            Paste Image
+          </button>
         </div>
       </div>
     </div>

@@ -9,6 +9,12 @@ const formatICSDate = (dateStr: string): string => {
   return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 };
 
+// Format date for Google Calendar (YYYYMMDDTHHmmss format without Z for local time)
+const formatGoogleDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+};
+
 export const generateICSFile = (event: EventDetails): string => {
   const now = new Date();
   const dtStamp = formatICSDate(now.toISOString());
@@ -61,4 +67,44 @@ export const downloadICS = (event: EventDetails) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+// Generate Google Calendar URL
+export const getGoogleCalendarUrl = (event: EventDetails): string => {
+  const startDate = formatGoogleDate(event.startDate);
+  const endDate = formatGoogleDate(event.endDate);
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${startDate}/${endDate}`,
+    details: event.description || '',
+    location: event.location || '',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+};
+
+// Generate Apple Calendar data URI (for direct download/open)
+export const getAppleCalendarDataUri = (event: EventDetails): string => {
+  const icsContent = generateICSFile(event);
+  return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
+};
+
+// Generate Outlook Web URL
+export const getOutlookCalendarUrl = (event: EventDetails): string => {
+  const startDate = new Date(event.startDate).toISOString();
+  const endDate = new Date(event.endDate).toISOString();
+
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: event.title,
+    startdt: startDate,
+    enddt: endDate,
+    body: event.description || '',
+    location: event.location || '',
+  });
+
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
 };
