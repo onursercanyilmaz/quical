@@ -1,22 +1,33 @@
 import React from 'react';
 import { EventDetails } from '../types';
-import { downloadICS, getGoogleCalendarUrl, getAppleCalendarDataUri, getOutlookCalendarUrl } from '../services/icsService';
-import { Download, RefreshCw, Check } from 'lucide-react';
+import { downloadICS, downloadMultipleICS, getGoogleCalendarUrl, getAppleCalendarDataUri, getOutlookCalendarUrl, getMultipleAppleCalendarDataUri } from '../services/icsService';
+import { Download, RefreshCw, Check, Calendar } from 'lucide-react';
 
 interface ResultCardProps {
   eventDetails: EventDetails;
+  allEvents?: EventDetails[];
   onReset: () => void;
   showReset?: boolean;
 }
 
-const ResultCard: React.FC<ResultCardProps> = ({ eventDetails, onReset, showReset = true }) => {
+const ResultCard: React.FC<ResultCardProps> = ({ eventDetails, allEvents, onReset, showReset = true }) => {
   const handleDownload = () => {
     downloadICS(eventDetails);
+  };
+
+  const handleDownloadAll = () => {
+    if (allEvents && allEvents.length > 1) {
+      downloadMultipleICS(allEvents);
+    }
   };
 
   const googleUrl = getGoogleCalendarUrl(eventDetails);
   const appleDataUri = getAppleCalendarDataUri(eventDetails);
   const outlookUrl = getOutlookCalendarUrl(eventDetails);
+
+  const multipleAppleDataUri = allEvents && allEvents.length > 1
+    ? getMultipleAppleCalendarDataUri(allEvents)
+    : null;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden text-center max-w-md mx-auto shadow-sm">
@@ -28,7 +39,33 @@ const ResultCard: React.FC<ResultCardProps> = ({ eventDetails, onReset, showRese
       </div>
 
       <div className="p-8">
+        {/* Add All Events Section - shown when multiple events exist */}
+        {allEvents && allEvents.length > 1 && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Calendar className="w-5 h-5 text-gray-600" />
+              <span className="font-semibold text-gray-800">Add All {allEvents.length} Events</span>
+            </div>
+            <div className="space-y-2">
+              {/* Download All */}
+              <a
+                href={multipleAppleDataUri || '#'}
+                download={`quical_events_${allEvents.length}.ics`}
+                className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold text-sm transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Download All (.ics)
+              </a>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+                .ics opens in Apple Calendar, Outlook & more
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Current Event Details */}
         <div className="mb-6 text-left border-l-2 border-black pl-4 py-1">
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Current Event</p>
           <h3 className="font-bold text-gray-900 text-lg leading-tight">{eventDetails.title}</h3>
           <p className="text-gray-500 text-sm mt-1">
             {new Date(eventDetails.startDate).toLocaleString(undefined, {
@@ -44,7 +81,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ eventDetails, onReset, showRese
           )}
         </div>
 
-        {/* Calendar Provider Options */}
+        {/* Calendar Provider Options for Single Event */}
         <div className="space-y-3 mb-6">
           <a
             href={googleUrl}
@@ -92,10 +129,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ eventDetails, onReset, showRese
         {/* Download ICS fallback */}
         <button
           onClick={handleDownload}
-          className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white py-3.5 px-6 rounded-lg font-semibold text-sm transition-all mb-4"
+          className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium text-sm transition-all mb-4"
         >
           <Download className="w-4 h-4" />
-          Download .ics File
+          Download This Event (.ics)
         </button>
 
         <p className="text-[10px] text-gray-400 mb-6 uppercase tracking-wide">

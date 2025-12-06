@@ -15,20 +15,20 @@ const formatGoogleDate = (dateStr: string): string => {
   return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 };
 
-export const generateICSFile = (event: EventDetails): string => {
+const escapeICS = (str: string): string => {
+  return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+};
+
+// Generate a single VEVENT block
+const generateVEvent = (event: EventDetails, uid: string): string[] => {
   const now = new Date();
   const dtStamp = formatICSDate(now.toISOString());
   const dtStart = formatICSDate(event.startDate);
   const dtEnd = formatICSDate(event.endDate);
 
   const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Quical//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${now.getTime()}@quicalai.com`,
+    `UID:${uid}`,
     `DTSTAMP:${dtStamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
@@ -49,13 +49,43 @@ export const generateICSFile = (event: EventDetails): string => {
     );
   }
 
-  lines.push('END:VEVENT', 'END:VCALENDAR');
+  lines.push('END:VEVENT');
+  return lines;
+};
+
+export const generateICSFile = (event: EventDetails): string => {
+  const now = new Date();
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Quical//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    ...generateVEvent(event, `${now.getTime()}@quicalai.com`),
+    'END:VCALENDAR'
+  ];
 
   return lines.join('\r\n');
 };
 
-const escapeICS = (str: string): string => {
-  return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+// Generate ICS file with multiple events
+export const generateMultipleEventsICSFile = (events: EventDetails[]): string => {
+  const now = new Date();
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Quical//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+
+  events.forEach((event, index) => {
+    const uid = `${now.getTime()}-${index}@quicalai.com`;
+    lines.push(...generateVEvent(event, uid));
+  });
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
 };
 
 export const downloadICS = (event: EventDetails) => {
@@ -67,6 +97,24 @@ export const downloadICS = (event: EventDetails) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+// Download multiple events in a single ICS file
+export const downloadMultipleICS = (events: EventDetails[]) => {
+  const icsContent = generateMultipleEventsICSFile(events);
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.setAttribute('download', `quical_events_${events.length}.ics`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Get Apple Calendar data URI for multiple events
+export const getMultipleAppleCalendarDataUri = (events: EventDetails[]): string => {
+  const icsContent = generateMultipleEventsICSFile(events);
+  return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
 };
 
 // Generate Google Calendar URL

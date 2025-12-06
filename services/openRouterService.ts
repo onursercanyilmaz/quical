@@ -41,16 +41,16 @@ export const extractEventsFromImage = async (base64Image: string): Promise<Event
   const now = new Date();
   const today = now.toISOString().split('T')[0];
   const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
-  const systemPrompt = `You are an intelligent assistant that extracts calendar event details from images (screenshots, flyers, posters).
+  const systemPrompt = `You are an intelligent assistant that extracts calendar event details from images (screenshots, flyers, posters, bills, invoices, handwritten notes, and general photos).
 Today's date is: ${today}
 Current time is: ${currentTime}
 
 Analyze the image provided and extract ALL events found. For EACH event, extract:
-- Title of the event
-- Start date and time (ISO 8601 format)
+- Title of the event (For bills/invoices, use the Payee or Service Name, e.g., "Electricity Bill", "Internet Invoice")
+- Start date and time (ISO 8601 format). IMPORTANT: For bills/invoices, use the "Due Date" or "Payment Date" as the start date.
 - End date and time (ISO 8601 format). If not specified, assume 1 hour duration.
 - Location (Venue name or address)
-- Description (Brief summary or key details)
+- Description (Brief summary, key details, or amount due for bills e.g., "Amount: $50.00")
 - All Day (boolean, true if it's an all-day event like a holiday or festival without specific hours)
 
 IMPORTANT DATE & TIME RULES:
@@ -59,6 +59,7 @@ IMPORTANT DATE & TIME RULES:
 - NEVER use past dates. If a date appears to be in the past, use the next future occurrence of that date.
 - NEVER use past times for TODAY's events. If the event is today and the time is in the past, round to the next full hour from now.
 - If the year is missing, assume the next occurrence of that date from today.
+- For general photos (e.g. a schedule on a wall), infer the event details from any visible text.
 
 IMPORTANT: Respond ONLY with a valid JSON object containing an "events" array:
 {

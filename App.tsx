@@ -16,20 +16,28 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<EventDetails[]>([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
-  const handleImageSelected = async (base64: string) => {
+  const handleImagesSelected = async (base64Images: string[]) => {
     setAppState(AppState.ANALYZING);
     setErrorMsg(null);
-    setUploadedImage(base64);
+    setUploadedImages(base64Images);
     try {
-      const extractedEvents = await extractEventsFromImage(base64);
-      setEvents(extractedEvents);
+      // Process all images and combine results
+      const allEventsPromises = base64Images.map(img => extractEventsFromImage(img));
+      const allEventsArrays = await Promise.all(allEventsPromises);
+      const allEvents = allEventsArrays.flat();
+
+      if (allEvents.length === 0) {
+        throw new Error("No events found in the images.");
+      }
+
+      setEvents(allEvents);
       setCurrentEventIndex(0);
       setAppState(AppState.REVIEW);
     } catch (err) {
       console.error(err);
-      setErrorMsg("We couldn't read that image. Please try a clearer screenshot.");
+      setErrorMsg("We couldn't read the images. Please try clearer screenshots.");
       setAppState(AppState.ERROR);
     }
   };
@@ -37,7 +45,7 @@ const App: React.FC = () => {
   const handleTextSubmit = async (text: string) => {
     setAppState(AppState.ANALYZING);
     setErrorMsg(null);
-    setUploadedImage(null);
+    setUploadedImages([]);
     try {
       const extractedEvents = await extractEventsFromText(text);
       setEvents(extractedEvents);
@@ -67,7 +75,7 @@ const App: React.FC = () => {
     setEvents([]);
     setCurrentEventIndex(0);
     setErrorMsg(null);
-    setUploadedImage(null);
+    setUploadedImages([]);
   };
 
   const handleNextEvent = () => {
@@ -112,8 +120,8 @@ const App: React.FC = () => {
                 <button
                   onClick={() => setInputMode('screenshot')}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${inputMode === 'screenshot'
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-black text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
                   <Image className="w-4 h-4" />
@@ -122,8 +130,8 @@ const App: React.FC = () => {
                 <button
                   onClick={() => setInputMode('text')}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${inputMode === 'text'
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-black text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
                   <Type className="w-4 h-4" />
@@ -133,7 +141,7 @@ const App: React.FC = () => {
 
               {/* Input Zone */}
               {inputMode === 'screenshot' ? (
-                <UploadZone onImageSelected={handleImageSelected} />
+                <UploadZone onImagesSelected={handleImagesSelected} />
               ) : (
                 <TextInputZone onTextSubmit={handleTextSubmit} />
               )}
@@ -212,7 +220,7 @@ const App: React.FC = () => {
               )}
               <EventEditor
                 eventDetails={currentEvent}
-                uploadedImage={uploadedImage}
+                uploadedImage={uploadedImages[0]}
                 onChange={handleDetailsChange}
                 onConfirm={handleConfirm}
                 onCancel={handleReset}
@@ -221,10 +229,39 @@ const App: React.FC = () => {
           )}
 
           {appState === AppState.SUCCESS && events.length > 0 && (
-            <div className="max-w-xl mx-auto w-full space-y-4">
-              {events.map((event, index) => (
-                <ResultCard key={index} eventDetails={event} onReset={handleReset} showReset={index === events.length - 1} />
-              ))}
+            <div className="max-w-xl mx-auto w-full">
+              {/* Event Navigation */}
+              {events.length > 1 && (
+                <div className="flex items-center justify-between mb-4 px-2">
+                  <button
+                    onClick={handlePrevEvent}
+                    disabled={currentEventIndex === 0}
+                    className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-black'
+                      }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+                  <span className="text-sm font-medium text-gray-500">
+                    Event {currentEventIndex + 1} of {events.length}
+                  </span>
+                  <button
+                    onClick={handleNextEvent}
+                    disabled={currentEventIndex === events.length - 1}
+                    className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === events.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-black'
+                      }`}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              <ResultCard
+                eventDetails={events[currentEventIndex]}
+                allEvents={events}
+                onReset={handleReset}
+                showReset={true}
+              />
             </div>
           )}
         </div>
