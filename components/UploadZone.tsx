@@ -120,13 +120,21 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={() => fileInputRef.current?.click()}
+      onClick={(e) => {
+        // Only trigger file input if clicking the main container or the drop text area
+        // We check if the click target is NOT a button or inside a button
+        const target = e.target as HTMLElement;
+        if (!target.closest('button')) {
+          fileInputRef.current?.click();
+        }
+      }}
     >
       {/* File upload input */}
       <input
         type="file"
         ref={fileInputRef}
         onChange={handleFileInput}
+        onClick={(e) => e.stopPropagation()}
         className="hidden"
         accept="image/*"
         multiple
@@ -137,6 +145,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
         type="file"
         ref={cameraInputRef}
         onChange={handleFileInput}
+        onClick={(e) => e.stopPropagation()}
         className="hidden"
         accept="image/*"
         capture="environment"
@@ -157,14 +166,20 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
             <span>PNG, JPG, WebP</span>
           </div>
           <button
-            onClick={handleCameraClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCameraClick(e);
+            }}
             className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
           >
             <Camera className="w-3 h-3" />
             Take Photo
           </button>
           <button
-            onClick={handlePasteClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePasteClick(e);
+            }}
             className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
           >
             <ClipboardPaste className="w-3 h-3" />
