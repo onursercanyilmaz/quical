@@ -9,7 +9,7 @@ const Header: React.FC = () => {
     <header className="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 py-4 px-6 sticky top-0 z-50 transition-colors duration-200">
       <div className="max-w-3xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Quical" className="w-10 h-10 rounded-lg" />
+          <img src={theme === 'dark' ? "/logo-dark.png" : "/logo.png"} alt="Quical" className="w-10 h-10 rounded-lg" />
           <h1 className="text-lg font-bold text-black dark:text-white tracking-tight">Quical</h1>
         </div>
         <button
