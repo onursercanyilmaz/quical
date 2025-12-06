@@ -113,8 +113,8 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
     <div
       className={`relative border border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer
         ${isDragging
-          ? 'border-black bg-gray-50'
-          : 'border-gray-300 hover:border-black hover:bg-gray-50'
+          ? 'border-black bg-gray-50 dark:border-white dark:bg-gray-800'
+          : 'border-gray-300 dark:border-gray-700 hover:border-black dark:hover:border-white hover:bg-gray-50 dark:hover:bg-gray-800'
         }
       `}
       onDragOver={handleDragOver}
@@ -143,13 +143,13 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
       />
 
       <div className="flex flex-col items-center justify-center space-y-5">
-        <div className={`p-4 rounded-full transition-colors duration-200 ${isDragging ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>
+        <div className={`p-4 rounded-full transition-colors duration-200 ${isDragging ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
           <Upload className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Upload or Take Photo</h3>
-          <p className="text-sm text-gray-500 mt-2">Drag & drop, click to browse, or <span className="font-medium">Ctrl+V</span> to paste</p>
-          <p className="text-xs text-gray-400 mt-1">You can select multiple images</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upload or Take Photo</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Drag & drop, click to browse, or <span className="font-medium">Ctrl+V</span> to paste</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">You can select multiple images</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -158,14 +158,14 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onImagesSelected }) => {
           </div>
           <button
             onClick={handleCameraClick}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-black transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
           >
             <Camera className="w-3 h-3" />
             Take Photo
           </button>
           <button
             onClick={handlePasteClick}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-black transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 border border-gray-200"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
           >
             <ClipboardPaste className="w-3 h-3" />
             Paste Image

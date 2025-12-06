@@ -6,6 +6,7 @@ export interface EventDetails {
   description: string;
   allDay: boolean;
   reminder?: number; // Minutes before event to trigger reminder (e.g., 60 = 1 hour before)
+  image?: string;    // Base64 string of the original image
 }
 
 export enum AppState {

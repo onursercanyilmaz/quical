@@ -123,7 +123,12 @@ If there is only ONE event, still return it in the events array. If there are MU
     const content = data.choices?.[0]?.message?.content;
 
     if (content) {
-      return parseEventResponse(content);
+      const events = parseEventResponse(content);
+      // Attach the original image to each event
+      return events.map(event => ({
+        ...event,
+        image: base64Image
+      }));
     } else {
       throw new Error("No response content from OpenRouter.");
     }

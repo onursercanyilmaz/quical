@@ -49,6 +49,16 @@ const generateVEvent = (event: EventDetails, uid: string): string[] => {
     );
   }
 
+  // Add image attachment if present
+  if (event.image) {
+    // Note: Some calendar apps might require just the base64 data without the header prefix if it's already stripped, 
+    // but usually for inline base64 in ICS it's formatted as:
+    // ATTACH;FMTTYPE=image/png;ENCODING=BASE64:[base64_data]
+    // We assume event.image is the raw base64 string (without data:image/png;base64, prefix) 
+    // because that's how we store it in openRouterService.ts
+    lines.push(`ATTACH;FMTTYPE=image/png;ENCODING=BASE64:${event.image}`);
+  }
+
   lines.push('END:VEVENT');
   return lines;
 };
