@@ -19,6 +19,17 @@ const escapeICS = (str: string): string => {
   return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 };
 
+// Format duration for ICS (e.g., 1440 -> P1D, 60 -> PT1H)
+const formatICSDuration = (minutes: number): string => {
+  if (minutes % 1440 === 0) {
+    return `P${minutes / 1440}D`;
+  }
+  if (minutes % 60 === 0) {
+    return `PT${minutes / 60}H`;
+  }
+  return `PT${minutes}M`;
+};
+
 // Generate a single VEVENT block
 const generateVEvent = (event: EventDetails, uid: string): string[] => {
   const now = new Date();
@@ -40,11 +51,12 @@ const generateVEvent = (event: EventDetails, uid: string): string[] => {
 
   // Add reminder/alarm if set
   if (event.reminder && event.reminder > 0) {
+    const duration = formatICSDuration(event.reminder);
     lines.push(
       'BEGIN:VALARM',
       'ACTION:DISPLAY',
-      `DESCRIPTION:Reminder: ${escapeICS(event.title)}`,
-      `TRIGGER:-PT${event.reminder}M`,
+      `DESCRIPTION:Reminder`,
+      `TRIGGER;RELATED=START:-${duration}`,
       'END:VALARM'
     );
   }
