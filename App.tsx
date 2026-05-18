@@ -6,6 +6,7 @@ import UploadZone from './components/UploadZone';
 import TextInputZone from './components/TextInputZone';
 import EventEditor from './components/EventEditor';
 import ResultCard from './components/ResultCard';
+import { SettingsModal } from './components/SettingsModal';
 import { Loader2, AlertCircle, ChevronLeft, ChevronRight, Image, Type } from 'lucide-react';
 
 type InputMode = 'screenshot' | 'text';
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleImagesSelected = async (base64Images: string[]) => {
     setAppState(AppState.ANALYZING);
@@ -37,7 +39,15 @@ const App: React.FC = () => {
       setAppState(AppState.REVIEW);
     } catch (err) {
       console.error(err);
-      setErrorMsg("We couldn't read the images. Please try clearer screenshots.");
+      if (err instanceof Error) {
+        if (err.message.includes("API Key is missing")) {
+          setErrorMsg("API Key is missing. Please configure your API key in the settings panel by clicking the gear icon at the top right.");
+        } else {
+          setErrorMsg(err.message);
+        }
+      } else {
+        setErrorMsg("We couldn't read the images. Please try clearer screenshots.");
+      }
       setAppState(AppState.ERROR);
     }
   };
@@ -53,7 +63,15 @@ const App: React.FC = () => {
       setAppState(AppState.REVIEW);
     } catch (err) {
       console.error(err);
-      setErrorMsg("We couldn't parse that text. Please try again with clearer event details.");
+      if (err instanceof Error) {
+        if (err.message.includes("API Key is missing")) {
+          setErrorMsg("API Key is missing. Please configure your API key in the settings panel by clicking the gear icon at the top right.");
+        } else {
+          setErrorMsg(err.message);
+        }
+      } else {
+        setErrorMsg("We couldn't parse that text. Please try again with clearer event details.");
+      }
       setAppState(AppState.ERROR);
     }
   };
@@ -94,7 +112,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 transition-colors duration-200">
-      <Header />
+      <Header onOpenSettings={() => setIsSettingsOpen(true)} />
 
       <main className="flex-1 w-full max-w-3xl mx-auto p-4 md:p-8 flex flex-col">
         {/* Intro Text */}
@@ -181,12 +199,25 @@ const App: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Processing Failed</h3>
               <p className="text-gray-500 dark:text-gray-400 mt-2 mb-8 text-sm">{errorMsg}</p>
-              <button
-                onClick={handleReset}
-                className="px-8 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors text-sm font-medium"
-              >
-                Try Again
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={handleReset}
+                  className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  Try Again
+                </button>
+                {errorMsg?.includes("API Key is missing") && (
+                  <button
+                    onClick={() => {
+                      handleReset();
+                      setIsSettingsOpen(true);
+                    }}
+                    className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors text-sm font-medium"
+                  >
+                    Configure API Key
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -270,6 +301,8 @@ const App: React.FC = () => {
       <footer className="py-8 text-center text-gray-300 dark:text-gray-700 text-xs uppercase tracking-widest">
         <p>Quical</p>
       </footer>
+
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 };

@@ -1,8 +1,32 @@
 import { EventDetails } from "../types";
 
-const OPENROUTER_API_URL = import.meta.env.VITE_OPENROUTER_API_URL;
-// Free vision-capable model on OpenRouter
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL;
+const getApiUrl = () => {
+  return localStorage.getItem('QUICAL_OPENROUTER_API_URL') || 
+         import.meta.env.VITE_OPENROUTER_API_URL || 
+         'https://openrouter.ai/api/v1/chat/completions';
+};
+
+const getModel = () => {
+  return localStorage.getItem('QUICAL_OPENROUTER_MODEL') || 
+         import.meta.env.VITE_OPENROUTER_MODEL || 
+         'google/gemini-2.5-flash';
+};
+
+const getApiKey = () => {
+  return localStorage.getItem('QUICAL_API_KEY') || 
+         localStorage.getItem('QUICAL_OPENROUTER_API_KEY') || 
+         import.meta.env.VITE_OPENROUTER_API_KEY || 
+         '';
+};
+
+const getErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const errorData = await response.json();
+    return errorData?.error?.message || errorData?.message || `API error: ${response.status}`;
+  } catch {
+    return `API error: ${response.status}`;
+  }
+};
 
 const parseEventResponse = (text: string): EventDetails[] => {
   try {
@@ -34,8 +58,12 @@ const parseEventResponse = (text: string): EventDetails[] => {
 };
 
 export const extractEventsFromImage = async (base64Image: string): Promise<EventDetails[]> => {
-  if (!import.meta.env.VITE_OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API Key is missing. Please set the VITE_OPENROUTER_API_KEY environment variable.");
+  const apiKey = getApiKey();
+  const apiUrl = getApiUrl();
+  const model = getModel();
+
+  if (!apiKey && !apiUrl.includes('localhost') && !apiUrl.includes('127.0.0.1')) {
+    throw new Error("API Key is missing. Please set the API key in Settings.");
   }
 
   const now = new Date();
@@ -78,16 +106,16 @@ IMPORTANT: Respond ONLY with a valid JSON object containing an "events" array:
 If there is only ONE event, still return it in the events array. If there are MULTIPLE events, include all of them in the array.`;
 
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://Quical.ai", // Optional: for OpenRouter rankings
         "X-Title": "Quical" // Optional: for OpenRouter rankings
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model: model,
         messages: [
           {
             role: "system",
@@ -114,9 +142,9 @@ If there is only ONE event, still return it in the events array. If there are MU
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("OpenRouter API Error:", response.status, errorData);
-      throw new Error(`OpenRouter API error: ${response.status}`);
+      const errMsg = await getErrorMessage(response);
+      console.error("API Error status:", response.status, errMsg);
+      throw new Error(errMsg);
     }
 
     const data = await response.json();
@@ -132,16 +160,20 @@ If there is only ONE event, still return it in the events array. If there are MU
     } else {
       throw new Error("No response content from OpenRouter.");
     }
-  } catch (error) {
-    console.error("OpenRouter API Error:", error);
-    throw new Error("Failed to process image. Please try again.");
+  } catch (error: any) {
+    console.error("API Error:", error);
+    throw new Error(error.message || "Failed to process image. Please try again.");
   }
 };
 
 // Extract events from pasted/typed text
 export const extractEventsFromText = async (text: string): Promise<EventDetails[]> => {
-  if (!import.meta.env.VITE_OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API Key is missing. Please set the VITE_OPENROUTER_API_KEY environment variable.");
+  const apiKey = getApiKey();
+  const apiUrl = getApiUrl();
+  const model = getModel();
+
+  if (!apiKey && !apiUrl.includes('localhost') && !apiUrl.includes('127.0.0.1')) {
+    throw new Error("API Key is missing. Please set the API key in Settings.");
   }
 
   const now = new Date();
@@ -183,16 +215,16 @@ IMPORTANT: Respond ONLY with a valid JSON object containing an "events" array:
 If there is only ONE event, still return it in the events array. If there are MULTIPLE events, include all of them in the array.`;
 
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://Quical.ai",
         "X-Title": "Quical"
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model: model,
         messages: [
           {
             role: "system",
@@ -208,9 +240,9 @@ If there is only ONE event, still return it in the events array. If there are MU
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("OpenRouter API Error:", response.status, errorData);
-      throw new Error(`OpenRouter API error: ${response.status}`);
+      const errMsg = await getErrorMessage(response);
+      console.error("API Error status:", response.status, errMsg);
+      throw new Error(errMsg);
     }
 
     const data = await response.json();
@@ -221,8 +253,8 @@ If there is only ONE event, still return it in the events array. If there are MU
     } else {
       throw new Error("No response content from OpenRouter.");
     }
-  } catch (error) {
-    console.error("OpenRouter API Error:", error);
-    throw new Error("Failed to process text. Please try again.");
+  } catch (error: any) {
+    console.error("API Error:", error);
+    throw new Error(error.message || "Failed to process text. Please try again.");
   }
 };
