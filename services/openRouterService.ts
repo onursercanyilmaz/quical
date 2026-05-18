@@ -6,8 +6,18 @@ const getApiUrl = () => {
          'https://openrouter.ai/api/v1/chat/completions';
 };
 
-const getModel = () => {
-  return localStorage.getItem('QUICAL_OPENROUTER_MODEL') || 
+const getTextModel = () => {
+  return localStorage.getItem('QUICAL_TEXT_MODEL') || 
+         localStorage.getItem('QUICAL_MODEL') || 
+         localStorage.getItem('QUICAL_OPENROUTER_MODEL') || 
+         import.meta.env.VITE_OPENROUTER_MODEL || 
+         'google/gemini-2.5-flash';
+};
+
+const getVisionModel = () => {
+  return localStorage.getItem('QUICAL_VISION_MODEL') || 
+         localStorage.getItem('QUICAL_MODEL') || 
+         localStorage.getItem('QUICAL_OPENROUTER_MODEL') || 
          import.meta.env.VITE_OPENROUTER_MODEL || 
          'google/gemini-2.5-flash';
 };
@@ -60,7 +70,7 @@ const parseEventResponse = (text: string): EventDetails[] => {
 export const extractEventsFromImage = async (base64Image: string): Promise<EventDetails[]> => {
   const apiKey = getApiKey();
   const apiUrl = getApiUrl();
-  const model = getModel();
+  const model = getVisionModel();
 
   if (!apiKey && !apiUrl.includes('localhost') && !apiUrl.includes('127.0.0.1')) {
     throw new Error("API Key is missing. Please set the API key in Settings.");
@@ -170,7 +180,7 @@ If there is only ONE event, still return it in the events array. If there are MU
 export const extractEventsFromText = async (text: string): Promise<EventDetails[]> => {
   const apiKey = getApiKey();
   const apiUrl = getApiUrl();
-  const model = getModel();
+  const model = getTextModel();
 
   if (!apiKey && !apiUrl.includes('localhost') && !apiUrl.includes('127.0.0.1')) {
     throw new Error("API Key is missing. Please set the API key in Settings.");
