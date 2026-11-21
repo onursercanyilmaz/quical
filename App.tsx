@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { AppState, EventDetails } from './types';
-import { extractEventsFromImage, extractEventsFromText } from './services/openRouterService';
+import { extractEventsFromImage, extractEventsFromText } from './services/aiService';
+import { getAIConfig, PROVIDERS } from './services/aiConfig';
 import Header from './components/Header';
 import UploadZone from './components/UploadZone';
 import TextInputZone from './components/TextInputZone';
 import EventEditor from './components/EventEditor';
 import ResultCard from './components/ResultCard';
 import { SettingsModal } from './components/SettingsModal';
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight, Image, Type } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronLeft, ChevronRight, Image, Type, Cpu, WifiOff, X } from 'lucide-react';
 
 type InputMode = 'screenshot' | 'text';
 
@@ -108,6 +109,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRemoveEvent = (indexToRemove: number) => {
+    if (events.length <= 1) return;
+    const updated = events.filter((_, idx) => idx !== indexToRemove);
+    setEvents(updated);
+    if (currentEventIndex >= updated.length) {
+      setCurrentEventIndex(updated.length - 1);
+    } else if (currentEventIndex > indexToRemove) {
+      setCurrentEventIndex(prev => prev - 1);
+    }
+  };
+
+  const activeConfig = getAIConfig();
+  const isOfflineMode = activeConfig.provider === 'offline';
+  const activeProviderName = PROVIDERS[activeConfig.provider]?.name || activeConfig.provider;
+
   const currentEvent = events[currentEventIndex];
 
   return (
@@ -133,6 +149,30 @@ const App: React.FC = () => {
 
           {appState === AppState.IDLE && (
             <div className="max-w-xl mx-auto w-full">
+              {/* Active Engine Badge */}
+              <div className="flex justify-center mb-4">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+                >
+                  {isOfflineMode ? (
+                    <>
+                      <WifiOff className="w-3.5 h-3.5" />
+                      <span>Offline Mode (No AI) · Change</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cpu className="w-3.5 h-3.5" />
+                      <span>
+                        AI: {activeProviderName}
+                        {activeConfig.textModel ? ` (${activeConfig.textModel})` : ''} · Settings
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Input Mode Tabs */}
               <div className="flex items-center justify-center gap-2 mb-6">
                 <button
@@ -188,7 +228,11 @@ const App: React.FC = () => {
             <div className="text-center py-20">
               <Loader2 className="w-10 h-10 text-black dark:text-white animate-spin mx-auto mb-6" />
               <h3 className="text-lg font-medium text-black dark:text-white">Processing</h3>
-              <p className="text-gray-400 dark:text-gray-500 mt-2 text-sm font-light">Analyzing dates and times...</p>
+              <p className="text-gray-400 dark:text-gray-500 mt-2 text-sm font-light">
+                {isOfflineMode && inputMode === 'screenshot'
+                  ? 'Running local OCR (first load may take a few seconds)...'
+                  : 'Analyzing dates and times...'}
+              </p>
             </div>
           )}
 
@@ -223,30 +267,61 @@ const App: React.FC = () => {
 
           {appState === AppState.REVIEW && currentEvent && (
             <div className="max-w-xl mx-auto w-full">
-              {/* Event Navigation */}
+              {/* Event Navigation & Quick Selection/Removal */}
               {events.length > 1 && (
-                <div className="flex items-center justify-between mb-4 px-2">
-                  <button
-                    onClick={handlePrevEvent}
-                    disabled={currentEventIndex === 0}
-                    className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === 0 ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
-                      }`}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </button>
-                  <span className="text-sm font-medium text-gray-500">
-                    Event {currentEventIndex + 1} of {events.length}
-                  </span>
-                  <button
-                    onClick={handleNextEvent}
-                    disabled={currentEventIndex === events.length - 1}
-                    className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === events.length - 1 ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
-                      }`}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                <div className="mb-4 space-y-2.5">
+                  <div className="flex items-center justify-between px-2">
+                    <button
+                      onClick={handlePrevEvent}
+                      disabled={currentEventIndex === 0}
+                      className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === 0 ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                        }`}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+                    <span className="text-sm font-medium text-gray-500">
+                      Event {currentEventIndex + 1} of {events.length}
+                    </span>
+                    <button
+                      onClick={handleNextEvent}
+                      disabled={currentEventIndex === events.length - 1}
+                      className={`flex items-center gap-1 text-sm font-medium transition-colors ${currentEventIndex === events.length - 1 ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' : 'text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white'
+                        }`}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 px-1">
+                    {events.map((ev, idx) => (
+                      <div
+                        key={idx}
+                        className={`inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          idx === currentEventIndex
+                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
+                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setCurrentEventIndex(idx)}
+                          className="max-w-[160px] truncate"
+                          title={ev.title}
+                        >
+                          {idx + 1}. {ev.title}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEvent(idx)}
+                          aria-label={`Remove ${ev.title}`}
+                          className="p-0.5 rounded-full opacity-70 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               <EventEditor

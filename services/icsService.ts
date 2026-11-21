@@ -30,19 +30,46 @@ const formatICSDuration = (minutes: number): string => {
   return `PT${minutes}M`;
 };
 
+const formatICSDateOnly = (dateStr: string, addDays = 0): string => {
+  const date = new Date(dateStr);
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate() + addDays);
+  const y = target.getFullYear();
+  const m = String(target.getMonth() + 1).padStart(2, '0');
+  const d = String(target.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+};
+
 // Generate a single VEVENT block
 const generateVEvent = (event: EventDetails, uid: string): string[] => {
   const now = new Date();
   const dtStamp = formatICSDate(now.toISOString());
-  const dtStart = formatICSDate(event.startDate);
-  const dtEnd = formatICSDate(event.endDate);
+
+  let dtStartLine: string;
+  let dtEndLine: string;
+
+  if (event.allDay) {
+    const startOnly = formatICSDateOnly(event.startDate, 0);
+    const endDateObj = new Date(event.endDate);
+    const startDateObj = new Date(event.startDate);
+    const sameCalendarDay =
+      startDateObj.getFullYear() === endDateObj.getFullYear() &&
+      startDateObj.getMonth() === endDateObj.getMonth() &&
+      startDateObj.getDate() === endDateObj.getDate();
+    // Per RFC 5545, DTEND for VALUE=DATE is exclusive (+1 day)
+    const endOnly = formatICSDateOnly(event.endDate, sameCalendarDay ? 1 : 1);
+    dtStartLine = `DTSTART;VALUE=DATE:${startOnly}`;
+    dtEndLine = `DTEND;VALUE=DATE:${endOnly}`;
+  } else {
+    dtStartLine = `DTSTART:${formatICSDate(event.startDate)}`;
+    dtEndLine = `DTEND:${formatICSDate(event.endDate)}`;
+  }
 
   const lines = [
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${dtStamp}`,
-    `DTSTART:${dtStart}`,
-    `DTEND:${dtEnd}`,
+    dtStartLine,
+    dtEndLine,
     `SUMMARY:${escapeICS(event.title)}`,
     `DESCRIPTION:${escapeICS(event.description || '')}`,
     `LOCATION:${escapeICS(event.location || '')}`,
@@ -141,8 +168,12 @@ export const getMultipleAppleCalendarDataUri = (events: EventDetails[]): string 
 
 // Generate Google Calendar URL
 export const getGoogleCalendarUrl = (event: EventDetails): string => {
-  const startDate = formatGoogleDate(event.startDate);
-  const endDate = formatGoogleDate(event.endDate);
+  const startDate = event.allDay
+    ? formatICSDateOnly(event.startDate, 0)
+    : formatGoogleDate(event.startDate);
+  const endDate = event.allDay
+    ? formatICSDateOnly(event.endDate, 1)
+    : formatGoogleDate(event.endDate);
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',

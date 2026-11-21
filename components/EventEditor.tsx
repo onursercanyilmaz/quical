@@ -1,5 +1,6 @@
 import React from 'react';
 import { EventDetails } from '../types';
+import { getAIConfig } from '../services/aiConfig';
 import { MapPin, AlignLeft, Calendar, Clock } from 'lucide-react';
 
 interface EventEditorProps {
@@ -39,7 +40,7 @@ const EventEditor: React.FC<EventEditorProps> = ({ eventDetails, uploadedImage, 
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Review Details</h2>
         </div>
         <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-gray-600 dark:text-gray-300">
-          AI GENERATED
+          {getAIConfig().provider === 'offline' ? 'OFFLINE PARSED' : 'AI GENERATED'}
         </div>
       </div>
 
